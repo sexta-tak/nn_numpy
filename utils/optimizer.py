@@ -31,4 +31,5 @@ class SGD:
 
             else:
                 for param in net.layers[layer].params.keys():
-                    net.layers[layer].params[param] -= self.lr * net.layers[layer].grads[param]
+                    if net.layers[layer].params[param] is not None:
+                        net.layers[layer].params[param] -= self.lr * net.layers[layer].grads[param]
