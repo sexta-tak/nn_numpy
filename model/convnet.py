@@ -56,5 +56,6 @@ class SimpleConvNet(Module):
                 self.__init_weight(layer)
 
             else:
-                scale = np.sqrt(2.0 / layer.params["W"].size)
-                layer.params["W"] = scale * np.random.standard_normal(layer.params["W"].shape)
+                if "W" in layer.params:
+                    scale = np.sqrt(2.0 / layer.params["W"].size)
+                    layer.params["W"] = scale * np.random.standard_normal(layer.params["W"].shape)

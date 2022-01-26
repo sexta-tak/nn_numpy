@@ -11,6 +11,7 @@ class Module:
         if required_grad:
             self.grad = OrderedDict()
         self.is_params = True
+        self.train = True
 
 
 class Affine(Module):
@@ -277,7 +278,7 @@ class BatchNormalization(Module):
         self.std = None
         self.grads = {"gamma":None, "beta":None}
 
-    def forward(self, x, train_flg=True):
+    def forward(self, x):
         """
         順伝播計算
         x :  CNNの場合は4次元、全結合層の場合は2次元  
@@ -296,11 +297,11 @@ class BatchNormalization(Module):
             """
             画像形式以外の場合
             """
-            out = self.__forward(x, train_flg)           
+            out = self.__forward(x)           
             
         return out
             
-    def __forward(self, x, train_flg=True, epsilon=1e-8):
+    def __forward(self, x, epsilon=1e-8):
         """
         x : 入力. N×Dの行列. Nはバッチサイズ. Dは手前の層のノード数
         """
@@ -309,36 +310,25 @@ class BatchNormalization(Module):
             self.moving_mean = np.zeros(D)
             self.moving_var = np.zeros(D)
                         
-        if train_flg:
+        if self.train:
             """
             学習時
             """
-            # 入力xについて、Nの方向に平均値を算出. 
-            mu = np.mean(x, axis=0) # 要素数D個のベクトル
-            mu = np.broadcast_to(mu, (N, D)) # Nの方向にブロードキャスト
-            print("mu.shape=", mu.shape)
+            # 入力xについて、nの方向に平均値を算出. 
+            mu = x.mean(axis=0) # 要素数d個のベクトル
             
             # 入力xから平均値を引く
-            x_mu = x - mu   # N×D行列
-            print("x_mu.shape=", x_mu.shape)
+            x_mu = x - mu   # n*d行列
             
             # 入力xの分散を求める
-            var = np.mean(x_mu**2, axis=0)  # 要素数D個のベクトル
-            print("var.shape=", var.shape)
+            var = np.mean(x_mu**2, axis=0)  # 要素数d個のベクトル
             
             # 入力xの標準偏差を求める(epsilonを足してから標準偏差を求める)
-            std = np.sqrt(var + epsilon)  # 要素数D個のベクトル
-            print("std.shape=", std.shape)
-            
-            # 標準偏差の逆数を求める
-            std_inv = 1 / std
-            std_inv = np.broadcast_to(std_inv, (N, D)) # Nの方向にブロードキャスト
-            print("std_inv.shape=", std_inv.shape)
+            std = np.sqrt(var + epsilon)  # 要素数d個のベクトル
             
             # 標準化
-            x_std = x_mu * std_inv  #N*D行列
-            print("x_std.shape=", x_std.shape)
-                  
+            x_std = x_mu / std  # n*d行列
+            
             # 値を保持しておく
             self.batch_size = x.shape[0]
             self.x_mu = x_mu
@@ -350,8 +340,8 @@ class BatchNormalization(Module):
             """
             予測時
             """
-            x_mu = x - self.moving_mean # N*D行列
-            x_std = x_mu / np.sqrt(self.moving_var + epsilon) # N*D行列
+            x_mu = x - self.moving_mean # n*d行列
+            x_std = x_mu / np.sqrt(self.moving_var + epsilon) # n*d行列
             
         # gammaでスケールし、betaでシフトさせる
         out = self.params["gamma"] * x_std + self.params["beta"] # N*D行列
@@ -421,3 +411,19 @@ class BatchNormalization(Module):
         self.grads["beta"] = dbeta
         
         return dx
+
+class Dropout(Module):
+    def __init__(self, dropout_ratio=0.5):
+        self.dropout_ratio = dropout_ratio
+        self.mask = None
+        self.is_params = False
+
+    def forward(self, x):
+        if self.train:
+            self.mask = np.random.rand(*x.shape) > self.dropout_ratio
+            return x * self.mask
+        else:
+            return x * (1.0 - self.dropout_ratio)
+
+    def backward(self, dout):
+        return dout * self.mask
