@@ -9,6 +9,7 @@ class Module:
         self.layers = OrderedDict()
         if required_grad:
             self.grad = OrderedDict()
+        self.is_params = True
 
 class Affine(Module):
     def __init__(self, in_features, out_features, weight_init_std=0.01, bias=True):
@@ -50,6 +51,7 @@ class SoftmaxWithLoss:
         self.loss = None
         self.y = None # softmaxの出力
         self.t = None # 教師データ
+        self.is_params = False
 
     def forward(self, x, t):
         """
@@ -75,6 +77,7 @@ class SoftmaxWithLoss:
 class ReLU:
     def __init__(self):
         self.mask = None
+        self.is_params = False
 
     def forward(self, x):
         self.mask = (x <= 0)

@@ -12,12 +12,23 @@ class SGD:
         """
         重みの更新
         """
-        dout = net.last_layer.backward()
-        keys = list(net.layers.keys())
-        keys.reverse()
-        for key in keys:
-            dout = net.layers[key].backward(dout)
+        dout = 1
+        dout = net.last_layer.backward(dout)
+        layers = list(net.layers.keys())
+        layers.reverse()
+        for layer in layers:
+            dout = net.layers[layer].backward(dout)
 
-        for ley in keys:
-            for param in net.layers[key].params.keys():
-                net.layers[key].params[param] -= self.lr * net.layers[key].grads[param]
+        self._update(net, layers)
+
+    def _update(self, net, layers):
+        for layer in layers:
+            if not net.layers[layer].is_params:
+                continue
+
+            if not hasattr(net.layers[layer], "params"):
+                self._update(net, layer)
+
+            else:
+                for param in net.layers[layer].params.keys():
+                    net.layers[layer].params[param] -= self.lr * net.layers[layer].grads[param]
