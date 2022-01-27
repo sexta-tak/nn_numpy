@@ -26,7 +26,7 @@ class SGD:
             if not net.layers[layer].is_params:
                 continue
 
-            if not hasattr(net.layers[layer], "params"):
+            if not any(net.layers[layer].params):
                 self._update(net, layer)
 
             else:

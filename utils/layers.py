@@ -47,7 +47,7 @@ class Affine(Module):
         dx = dx.reshape(*self.original_x_shape)  # 入力データの形状に戻す（テンソル対応）
         return dx
 
-class SoftmaxWithLoss:
+class SoftmaxWithLoss(Module):
     def __init__(self):
         
         # 初期値
@@ -77,7 +77,7 @@ class SoftmaxWithLoss:
 
         return dx
 
-class ReLU:
+class ReLU(Module):
     def __init__(self):
         self.mask = None
         self.is_params = False
